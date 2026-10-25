@@ -166,7 +166,7 @@ node scripts/preview-diary.mjs --root ./memory 阿橘 火锅
 
 - 数据全在本地 `state/` 与 `persona-core/`，库不联网、不上报；
 - 导出一份 `{ version, exportedAt, roles: { "<角色>": { facts, diary } } }` 即可换机器，导入按角色合并去重；
-- 仓库里不要放真实角色内核与真实日记：`.gitignore` 默认忽略 `state/`、`handoff/`、`persona-core/*.md`（模板除外）。
+- `.gitignore` 默认忽略 `state/`、`handoff/`、`persona-core/*.md`（模板除外）。
 
 ## 已知限制
 
