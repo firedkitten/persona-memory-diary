@@ -1,0 +1,21 @@
+{
+  "diary": {
+    "enabled": true,
+    "maxInjectChars": 400,
+    "maxEntries": 6
+  },
+  "facts": {
+    "enabled": true,
+    "maxInjectChars": 300,
+    "maxEntries": 6
+  },
+  "handoff": {
+    "enabled": true,
+    "remindAfterTurns": 40,
+    "notifyOwner": true,
+    "maxInjectChars": 700
+  },
+  "personaCore": {
+    "budgetChars": 600
+  }
+}

@@ -1,0 +1,19 @@
+# 运行数据：日记 / 事实 / 交接单 / 内核备份，一律不入库
+state/
+handoff/
+persona-core/.bak/
+
+# 真实角色内核与角色卡属于个人内容，只发布模板与示例
+persona-core/*.md
+!persona-core/_template.md
+roles/
+examples/private/
+
+# 本地/私有材料：方案草稿、评审记录、本机脚本
+_private/
+
+# 常规忽略
+node_modules/
+*.log
+.DS_Store
+Thumbs.db
