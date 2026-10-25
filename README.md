@@ -1,5 +1,7 @@
 # persona-memory-diary
 
+[![Derived from qq-bridge](https://img.shields.io/badge/derived%20from-firedkitten%2Fqq--bridge-4c8eda)](https://github.com/firedkitten/qq-bridge)
+
 给聊天角色用的长期记忆零件：**人格内核 + 长期事实 + 事件日记 + 会话交接单**。
 
 全部是纯文件（JSONL / Markdown / JSON），无数据库、无向量库、不调用模型、不绑定任何聊天平台。压缩会带走对话，带不走这些文件。
