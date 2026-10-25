@@ -42,6 +42,7 @@
 - **零成本记录**：事实用句式规则从对方消息里抽取，日记在角色已有的「记一笔」调用处双写，不额外花 token。
 - **纯文本可迁移**：`cat` / `grep` / `rsync` 就能备份和搬机器，导出即一份 JSON 档案。
 - **交接单只读一次**：投递成功才标记已读，不重复占预算，也不删除任何数据。
+- **档案留存**：每一次写入、删除、轮转都另存一份 append-only 底稿（`archive/<角色>/<日期>.jsonl`），主文件损坏或误删时可以按天回查、下载，但**永远不参与注入**。
 
 ## 快速开始
 
@@ -140,6 +141,7 @@ memory/
 | `src/facts.js` | 事实抽取（11 类句式）、归一化去重、上限淘汰、注入块 |
 | `src/diary.js` | JSONL 落盘、10 分钟去重、1MB 轮转、关键词召回、注入块 |
 | `src/handoff.js` | 交接单拼装、Markdown 归档、只读一次的 `usedAt` |
+| `src/archive.js` | 档案留存：每次写入/删除/轮转另存到 `archive/<角色>/<日期>.jsonl`，只读回查，不参与注入 |
 
 详细设计与取舍见 [`docs/DESIGN.md`](docs/DESIGN.md)，接进自己的机器人见 [`docs/INTEGRATION.md`](docs/INTEGRATION.md)。
 
@@ -153,6 +155,7 @@ node scripts/test-persona-draft.mjs   # 草稿归类 / 禁区措辞 / 退化 / �
 node scripts/test-diary.mjs           # 落盘 / 去重 / 轮转 / 检索 / 预算
 node scripts/test-facts.mjs           # 句式抽取 / 归一化 / 去重 / 删除 / 预算
 node scripts/test-handoff.mjs         # 拼装 / 预算 / 只读一次
+node scripts/test-archive.mjs         # 归档写入 / 删除留痕 / 轮转 / 按天合并 / 不参与注入
 ```
 
 测试只写系统临时目录，不碰真实数据。
@@ -164,11 +167,26 @@ node scripts/preview-persona-core.mjs --root ./memory 阿橘
 node scripts/preview-diary.mjs --root ./memory 阿橘 火锅
 ```
 
+## 档案留存
+
+`facts.jsonl` / `diary.jsonl` 是**工作集**：会去重、会被删除、超过 1MB 还会轮转。所以另有 `archive/` 目录，把**发生过的每一次变更**按天追加下来：
+
+```
+state/<角色>/archive/2026-10-25.jsonl   # 每行 {at, role, kind:'fact'|'diary', action:'write'|'delete'|'rotate', item}
+```
+
+- `write`：新增一条事实/日记（含随后被去重或淘汰掉的）；
+- `delete`：有人手动删了一条，留痕而不是抹掉；
+- `rotate`：日记超过 1MB 轮转时，被轮走的那些行也先落一份。
+
+它**只写不读**，不参与任何注入、不占预算；作用只有一个——主文件被误删或写坏时，还能按天把东西找回来。
+
 ## 隐私与迁移
 
 - 数据全在本地 `state/` 与 `persona-core/`，库不联网、不上报；
 - 导出一份 `{ version, exportedAt, roles: { "<角色>": { facts, diary } } }` 即可换机器，导入按角色合并去重；
-- `.gitignore` 默认忽略 `state/`、`handoff/`、`persona-core/*.md`（模板除外）。
+- `.gitignore` 默认忽略 `state/`、`handoff/`、`persona-core/*.md`（模板除外）；
+- `archive/` 是只增不改的底稿，备份时一并带上：主文件坏了，从那里按天回查。
 
 ## 已知限制
 

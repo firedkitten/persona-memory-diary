@@ -12,6 +12,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { appendArchive, appendArchives } from './archive.js';
+
 /** 日记文件名（每个人格一个）。 */
 export const DIARY_FILE = 'diary.jsonl';
 /** 单条正文上限（字符）：日记是锚不是聊天记录，只留结论。 */
@@ -109,12 +111,17 @@ export function appendDiary(rootDir, entry, { rotateBytes = ROTATE_BYTES, keepLi
 
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.appendFileSync(file, `${JSON.stringify(record)}\n`, 'utf8');
+  appendArchive(rootDir, { role, kind: 'diary', action: 'write', entry: record });
 
   // 轮转：按体积触发（每次 stat 比每次数行便宜），保留最新 keepLines 行。
   try {
     const size = fs.statSync(file).size;
     if (size > rotateBytes) {
-      const kept = parseLines(fs.readFileSync(file, 'utf8')).slice(-keepLines);
+      const all = parseLines(fs.readFileSync(file, 'utf8'));
+      const kept = all.slice(-keepLines);
+      const dropped = all.slice(0, Math.max(0, all.length - kept.length));
+      // 轮转丢掉的是旧事，不是没发生过——先入档案，再从工作文件里移除。
+      if (dropped.length) appendArchives(rootDir, role, 'diary', 'rotate', dropped);
       fs.writeFileSync(file, kept.map((e) => `${JSON.stringify(e)}\n`).join(''), 'utf8');
     }
   } catch {
@@ -198,12 +205,15 @@ export function buildDiaryBlock({ recent = [], related = [], now = Date.now(), b
 export function removeDiary(rootDir, role, { at, text, conv } = {}) {
   const file = diaryFile(rootDir, role);
   const all = readDiary(rootDir, role);
-  const kept = all.filter((e) => !(
+  const dropped = all.filter((e) => (
     Number(e.at) === Number(at)
     && String(e.text ?? '') === String(text ?? '')
     && (conv === undefined || !e.conv || String(e.conv ?? '') === String(conv))
   ));
-  if (kept.length === all.length) return { ok: false, error: '没有这条日记' };
+  if (!dropped.length) return { ok: false, error: '没有这条日记' };
+  // 先留档再删：删掉的条目仍然可查，只是不再参与注入。
+  appendArchives(rootDir, role, 'diary', 'delete', dropped);
+  const kept = all.filter((e) => !dropped.includes(e));
   fs.writeFileSync(file, kept.map((e) => `${JSON.stringify(e)}\n`).join(''), 'utf8');
-  return { ok: true, removed: all.length - kept.length };
+  return { ok: true, removed: dropped.length };
 }

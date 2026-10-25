@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { sanitizeRoleName, formatRelative, queryTerms } from './diary.js';
+import { appendArchive, appendArchives } from './archive.js';
 
 /** 事实文件名（每个人格一个）。 */
 export const FACTS_FILE = 'facts.jsonl';
@@ -149,11 +150,14 @@ export function appendFact(rootDir, { role, text, cat = 'identity', conv = '', s
   };
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.appendFileSync(file, `${JSON.stringify(record)}\n`, 'utf8');
+  appendArchive(rootDir, { role: r, kind: 'fact', action: 'write', entry: record });
 
-  // 上限：超了只留最新的 FACTS_MAX 条（新的通常更有用）。
+  // 上限：超了只留最新的 FACTS_MAX 条（新的通常更有用），被挤掉的进档案。
   const all = [...existing, record];
   if (all.length > FACTS_MAX) {
     const kept = all.slice(-FACTS_MAX);
+    const dropped = all.slice(0, all.length - kept.length);
+    if (dropped.length) appendArchives(rootDir, r, 'fact', 'rotate', dropped);
     fs.writeFileSync(file, kept.map((e) => `${JSON.stringify(e)}\n`).join(''), 'utf8');
   }
   return { ok: true, entry: record };
@@ -174,14 +178,16 @@ export function readFacts(rootDir, role) {
 export function removeFact(rootDir, role, { at, text, conv } = {}) {
   const file = factsFile(rootDir, role);
   const all = readFacts(rootDir, role);
-  const kept = all.filter((e) => !(
+  const dropped = all.filter((e) => (
     Number(e.at) === Number(at)
     && factKey(e.text) === factKey(text)
     && (conv === undefined || !e.conv || String(e.conv ?? '') === String(conv))
   ));
-  if (kept.length === all.length) return { ok: false, error: '没有这条事实' };
+  if (!dropped.length) return { ok: false, error: '没有这条事实' };
+  appendArchives(rootDir, role, 'fact', 'delete', dropped);
+  const kept = all.filter((e) => !dropped.includes(e));
   fs.writeFileSync(file, kept.map((e) => `${JSON.stringify(e)}\n`).join(''), 'utf8');
-  return { ok: true, removed: all.length - kept.length };
+  return { ok: true, removed: dropped.length };
 }
 
 /** 关键词召回（事实数量少，直接复用日记的打分）。 */

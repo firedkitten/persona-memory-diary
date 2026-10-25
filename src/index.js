@@ -8,3 +8,4 @@ export * from './persona-draft.js';
 export * from './diary.js';
 export * from './facts.js';
 export * from './handoff.js';
+export * from './archive.js';
