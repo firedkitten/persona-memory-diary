@@ -127,7 +127,7 @@ memory/
 | `diary.maxEntries` | 6 | 最近条数 |
 | `facts.maxInjectChars` | 300 | 事实注入预算 |
 | `facts.maxEntries` | 6 | 最多注入条数 |
-| `handoff.remindAfterTurns` | 40 | 到点只提醒，不自动换会话 |
+| `handoff.remindAfterTurns` | 100 | 到点只提醒，不自动换会话；控制台里可改，0 = 不提醒 |
 | `handoff.maxInjectChars` | 700 | 交接单注入预算 |
 
 见 [`examples/config.example.json`](examples/config.example.json)。
