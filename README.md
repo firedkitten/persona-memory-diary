@@ -43,6 +43,7 @@
 - **纯文本可迁移**：`cat` / `grep` / `rsync` 就能备份和搬机器，导出即一份 JSON 档案。
 - **交接单只读一次**：投递成功才标记已读，不重复占预算，也不删除任何数据。
 - **档案留存**：每一次写入、删除、轮转都另存一份 append-only 底稿（`archive/<角色>/<日期>.jsonl`），主文件损坏或误删时可以按天回查、下载，但**永远不参与注入**。
+- **Markdown 视图**：同一个窗口的记忆会自动渲染成 `diary/<窗口>.md`，档案渲染成 `archive/<窗口>/<日期>.md`，记事本就能打开、能直接拷走；视图坏了删掉重建，不影响注入。
 
 ## 快速开始
 
@@ -142,6 +143,7 @@ memory/
 | `src/diary.js` | JSONL 落盘、10 分钟去重、1MB 轮转、关键词召回、注入块 |
 | `src/handoff.js` | 交接单拼装、Markdown 归档、只读一次的 `usedAt` |
 | `src/archive.js` | 档案留存：每次写入/删除/轮转另存到 `archive/<角色>/<日期>.jsonl`，只读回查，不参与注入 |
+| `src/md-view.js` | Markdown 视图：按会话窗口渲染 `diary/<窗口>.md` 与 `archive/<窗口>/<日期>.md`，只写不读 |
 
 详细设计与取舍见 [`docs/DESIGN.md`](docs/DESIGN.md)，接进自己的机器人见 [`docs/INTEGRATION.md`](docs/INTEGRATION.md)。
 
@@ -156,6 +158,7 @@ node scripts/test-diary.mjs           # 落盘 / 去重 / 轮转 / 检索 / 预�
 node scripts/test-facts.mjs           # 句式抽取 / 归一化 / 去重 / 删除 / 预算
 node scripts/test-handoff.mjs         # 拼装 / 预算 / 只读一次
 node scripts/test-archive.mjs         # 归档写入 / 删除留痕 / 轮转 / 按天合并 / 不参与注入
+node scripts/test-md-view.mjs         # 按窗口分文件 / kind 前缀 / 按天分档 / 原子写
 ```
 
 测试只写系统临时目录，不碰真实数据。
@@ -181,12 +184,56 @@ state/<角色>/archive/2026-10-25.jsonl   # 每行 {at, role, kind:'fact'|'diary
 
 它**只写不读**，不参与任何注入、不占预算；作用只有一个——主文件被误删或写坏时，还能按天把东西找回来。
 
+## Markdown 视图
+
+jsonl 是给机器用的，md 是给人用的。每次数据变化，本库会把同一份内容渲染成两个目录：
+
+```
+state/<角色>/diary/private-1932831443.md          # 一个会话窗口一个文件
+state/<角色>/diary/group-1129256216.md
+state/<角色>/archive/private-1932831443/2026-11-16.md   # 档案按窗口、按天
+```
+
+一行一条，保留类型前缀：
+
+```markdown
+- 12:30 [印象] 爱叫我傻鱼
+- 18:04 [事件] 一起给猫起了名
+```
+
+- **只写不读**：注入链路永远读 jsonl，md 更新失败只记日志，不会拦住对话；
+- **坏了就重建**：删掉 `diary/` 或 `archive/` 整个目录，下一次写入或宿主重启时会自动补回来；
+- **拷走就是全部**：把 `state/<角色>/` 整个复制走，换机器/换程序都能直接翻。
+
+## 她自己写的日记
+
+上面两种日记都是**从对话里长出来的**：记发生了什么、对方是谁。但角色的表达欲不该只对着聊天记录——她可以自己写，内容不限。
+
+接一个工具（`qq_diary_write`）就够了：
+
+```js
+await appendDiary(root, { role, conv: key, kind: 'self', text: '今天窗外下了很久的雨' });
+```
+
+- **写什么都行**：今天想到的事、心情、看到的、想对谁说的话，不一定是聊天里发生的事；
+- **写不写随她**：没内容就不写，别为了凑数而写（提示词里也是这么说的）；
+- **同一条流水线**：落在同一个 `diary.jsonl`，按 `conv` 分窗口，md 视图里显示成 `[自记]`，档案里也会留痕；
+- **每天一次「自己的时间」**：宿主可以在固定时段（默认 21 点起、随机延后 3 小时）给角色一次空档，安静 30 分钟以上才投递；她写或不写都行，这一轮的文本不会发到聊天里。
+
+```jsonc
+// config.json
+"diary": {
+  "selfWrite": { "enabled": true, "hour": 21, "jitterMinutes": 180, "quietMs": 1800000, "maxChars": 200 }
+}
+```
+
 ## 隐私与迁移
 
 - 数据全在本地 `state/` 与 `persona-core/`，库不联网、不上报；
 - 导出一份 `{ version, exportedAt, roles: { "<角色>": { facts, diary } } }` 即可换机器，导入按角色合并去重；
 - `.gitignore` 默认忽略 `state/`、`handoff/`、`persona-core/*.md`（模板除外）；
 - `archive/` 是只增不改的底稿，备份时一并带上：主文件坏了，从那里按天回查。
+- `diary/`、`archive/<窗口>/` 下是自动生成的 md 视图，删掉会自动重建，不需要单独备份。
 
 ## 已知限制
 

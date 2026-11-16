@@ -33,6 +33,8 @@ const KIND_LABEL = {
   impression: '印象',
   event: '事件',
   handoff: '交接',
+  // 角色自己主动写的日记：内容不限（心情、想法、想说的话），不是聊天记录的摘要。
+  self: '自记',
 };
 
 /** 与桥接 sanitizeRoleName 同一规则：只留字母数字下划线中文与连字符。 */

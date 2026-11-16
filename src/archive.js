@@ -59,6 +59,9 @@ export function appendArchive(rootDir, { role, kind, action = 'write', entry = {
       at: Number(entry.at) || ts,
       archivedAt: new Date().toISOString(),
       action: ARCHIVE_ACTIONS.includes(action) ? action : 'write',
+      // kind 是本层分类（fact/diary），会盖掉条目原来的 kind（topic/thought/…）。
+      // 另存一份 entryKind，md 视图里才还能显示「[话题]」「[印象]」这种前缀。
+      entryKind: entry.kind ?? null,
       kind: k,
       role: r,
     };

@@ -1,6 +1,6 @@
 {
   "name": "persona-memory-diary",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Persona-aware long-term memory for chat characters: persona core, event diary, long-term facts and session handoff, all in plain JSONL/Markdown.",
   "type": "module",
   "main": "./src/index.js",
@@ -11,7 +11,8 @@
     "./diary": "./src/diary.js",
     "./facts": "./src/facts.js",
     "./handoff": "./src/handoff.js",
-    "./archive": "./src/archive.js"
+    "./archive": "./src/archive.js",
+    "./md-view": "./src/md-view.js"
   },
   "files": [
     "src",
@@ -23,7 +24,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "test": "node scripts/test-persona-core.mjs && node scripts/test-persona-draft.mjs && node scripts/test-diary.mjs && node scripts/test-facts.mjs && node scripts/test-handoff.mjs && node scripts/test-archive.mjs",
+    "test": "node scripts/test-persona-core.mjs && node scripts/test-persona-draft.mjs && node scripts/test-diary.mjs && node scripts/test-facts.mjs && node scripts/test-handoff.mjs && node scripts/test-archive.mjs && node scripts/test-md-view.mjs",
     "preview:core": "node scripts/preview-persona-core.mjs",
     "preview:diary": "node scripts/preview-diary.mjs"
   },
